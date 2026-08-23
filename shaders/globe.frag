@@ -12,7 +12,8 @@ const float PI = 3.14159265359;
 
 void main() {
     // 1. Normalisasi koordinat layar (-1.0 sampai 1.0)
-    vec2 st = (FragCoord().xy - 0.5 * uResolution) / min(uResolution.x, uResolution.y);
+    // PERBAIKAN: Menggunakan FlutterFragCoord().xy menggantikan FragCoord().xy
+    vec2 st = (FlutterFragCoord().xy - 0.5 * uResolution) / min(uResolution.x, uResolution.y);
 
     // 2. Tentukan radius bola 3D
     float radius = 0.4;
