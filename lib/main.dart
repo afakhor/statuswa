@@ -64,7 +64,8 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
 
   Future<void> _initShaderAndTexture() async {
     final program = await ui.FragmentProgram.fromAsset('shaders/globe.frag');
-    final dynamicTexture = await generateRunningTextTexture(_textController.text);
+    final dynamicTexture =
+        await generateRunningTextTexture(_textController.text);
 
     if (mounted) {
       setState(() {
@@ -89,7 +90,7 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
   void _shareToWhatsApp() {
     final inputMessage = _textController.text.trim();
     final customText = inputMessage.isEmpty ? 'BABE.INFO' : inputMessage;
-    
+
     // Encode parameter agar aman digunakan di URL
     final encodedText = Uri.encodeComponent(customText);
     final dynamicUrl = '$_baseUrl?text=$encodedText';
@@ -114,84 +115,90 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      children: [
-        // Area Interactive Globe 3D
-        GestureDetector(
-          onPanStart: (details) {
-            _lastTouchOffset = details.localPosition;
-          },
-          onPanUpdate: (details) {
-            setState(() {
-              final delta = details.localPosition - _lastTouchOffset;
-              _touchOffset += Offset(delta.dx * 0.01, -delta.dy * 0.01);
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Area Interactive Globe 3D
+          GestureDetector(
+            onPanStart: (details) {
               _lastTouchOffset = details.localPosition;
-            });
-          },
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return CustomPaint(
-                size: const Size(300, 300),
-                painter: GlobePainter(
-                  program: _program!,
-                  texture: _textureImage!,
-                  time: _controller.value * 2 * 3.14159265359,
-                  touch: _touchOffset,
-                ),
-              );
             },
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Input Field untuk Teks Kustom
-        TextField(
-          controller: _textController,
-          style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold),
-          decoration: InputDecoration(
-            labelText: 'Ketik Running Text',
-            labelStyle: const TextStyle(color: Colors.amber),
-            hintText: 'Misal: BABE.INFO / PUSAT BERITA',
-            hintStyle: TextStyle(color: Colors.grey.shade600),
-            enabledBorder: OutlineInputBorder(
-              borderSide: const BorderSide(color: Colors.amber),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: const BorderSide(color: Colors.amberAccent, width: 2),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            prefixIcon: const Icon(Icons.text_fields, color: Colors.amber),
-          ),
-          onChanged: (val) => _updateTexture(val),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Tombol Share ke WhatsApp
-        ElevatedButton.icon(
-          onPressed: _shareToWhatsApp,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF25D366),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-            elevation: 4,
-          ),
-          icon: const Icon(Icons.share, size: 20),
-          label: const Text(
-            'Bagikan ke WhatsApp',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+            onPanUpdate: (details) {
+              setState(() {
+                final delta = details.localPosition - _lastTouchOffset;
+                _touchOffset += Offset(delta.dx * 0.01, -delta.dy * 0.01);
+                _lastTouchOffset = details.localPosition;
+              });
+            },
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return CustomPaint(
+                  size: const Size(300, 300),
+                  painter: GlobePainter(
+                    program: _program!,
+                    texture: _textureImage!,
+                    time: _controller.value * 2 * 3.14159265359,
+                    touch: _touchOffset,
+                  ),
+                );
+              },
             ),
           ),
-        ),
-      ],
+
+          const SizedBox(height: 24),
+
+          // Input Field untuk Teks Kustom
+          TextField(
+            controller: _textController,
+            style: const TextStyle(
+                color: Colors.amberAccent, fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              labelText: 'Ketik Running Text',
+              labelStyle: const TextStyle(color: Colors.amber),
+              hintText: 'Misal: BABE.INFO / PUSAT BERITA',
+              hintStyle: TextStyle(color: Colors.grey.shade600),
+              enabledBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: Colors.amber),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide:
+                    const BorderSide(color: Colors.amberAccent, width: 2),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              prefixIcon: const Icon(Icons.text_fields, color: Colors.amber),
+            ),
+            onChanged: (val) => _updateTexture(val),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Tombol Share ke WhatsApp
+          ElevatedButton.icon(
+            onPressed: _shareToWhatsApp,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              elevation: 4,
+            ),
+            icon: const Icon(Icons.share, size: 20),
+            label: const Text(
+              'Bagikan ke WhatsApp',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
