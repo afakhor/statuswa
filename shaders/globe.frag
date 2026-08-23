@@ -4,13 +4,13 @@
 
 uniform vec2 uResolution;
 uniform float uTime;
-uniform sampler2D uTexture; // Tekstur dinamis buatan Dart (Teks BABE.INFO)
+uniform vec2 uTouch;       // Uniform baru: Offset rotasi sentuhan (X, Y)
+uniform sampler2D uTexture;
 
 out vec4 fragColor;
 
 const float PI = 3.14159265359;
 
-// Fungsi Noise Matematis untuk Efek Rantai/Urat Retakan Hitam
 float hash(vec2 p) {
     p = fract(p * vec2(123.39, 456.21));
     p += dot(p, p + 45.32);
@@ -28,7 +28,6 @@ float SimplexNoise(vec2 p) {
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
-// Pola Urat Rantai Retakan (Crack Veins)
 float crackPattern(vec2 uv) {
     vec2 p = uv * 12.0;
     float n = SimplexNoise(p + vec2(uTime * 0.05));
@@ -51,40 +50,36 @@ void main() {
     float z = sqrt(radius * radius - dist * dist);
     vec3 normal = normalize(vec3(st.x, st.y, z));
 
-    // 2. Pemetaan Spherical UV
-    float lon = atan(-normal.z, normal.x) + uTime * 0.3;
-    float lat = asin(clamp(normal.y / radius, -1.0, 1.0));
+    // 2. Tambahkan Sentuhan Jari ke Rotasi Bola (uTouch.x untuk Bujur, uTouch.y untuk Lintang)
+    float lon = atan(normal.z, normal.x) - uTime * 0.2 + uTouch.x;
+    float lat = asin(clamp(normal.y / radius, -1.0, 1.0)) + uTouch.y;
 
     vec2 uv = vec2(
-        fract(lon / (2.0 * PI) + 0.5),
-        clamp(0.5 - lat / PI, 0.0, 1.0)
+        fract(0.5 - lon / (2.0 * PI)),
+        clamp(0.5 + lat / PI, 0.0, 1.0)
     );
 
-    // 3. Pencahayaan Emas Mengilap (Metallic Studio Lighting)
-    vec3 lightDir1 = normalize(vec3(-0.8, 0.8, 1.0)); // Cahaya Utama
-    vec3 lightDir2 = normalize(vec3(0.8, -0.5, 0.5)); // Soft Rim Light
+    // 3. Pencahayaan Emas 3D
+    vec3 lightDir1 = normalize(vec3(-0.8, 0.8, 1.0));
+    vec3 lightDir2 = normalize(vec3(0.8, -0.5, 0.5));
 
     float diff1 = max(dot(normal, lightDir1), 0.0);
     float diff2 = max(dot(normal, lightDir2), 0.0);
 
     vec3 viewDir = vec3(0.0, 0.0, 1.0);
     vec3 reflectDir = reflect(-lightDir1, normal);
-    
-    // Kilau Cermin Emas (High Specular)
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 40.0);
 
-    // Warna Emas Mewah (Gold Gradient)
     vec3 goldBase = vec3(1.0, 0.80, 0.22);
     vec3 goldDark = vec3(0.35, 0.18, 0.02);
     vec3 goldHighlight = vec3(1.0, 0.95, 0.75);
 
     vec3 goldColor = mix(goldDark, goldBase, diff1 + diff2 * 0.3) + goldHighlight * spec * 0.9;
 
-    // 4. Campurkan dengan Rantai Retakan Hitam (Prosedural)
+    // 4. Retakan Rantai + Tekstur BABE.INFO
     float crack = crackPattern(uv);
     goldColor = mix(vec3(0.05, 0.03, 0.02), goldColor, crack);
 
-    // 5. Campurkan dengan Tekstur Teks BABE.INFO dari Dart
     vec4 texColor = texture(uTexture, uv);
     vec3 finalColor = mix(goldColor, texColor.rgb, texColor.a);
 
