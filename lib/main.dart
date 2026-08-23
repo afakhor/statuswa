@@ -1,121 +1,44 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+Future<ui.Image> generateBabeInfoTexture() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  
+  // Ukuran standar Equirectangular Map (2:1)
+  const double width = 1024;
+  const double height = 512;
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  // Latar belakang transparan
+  final paint = Paint()..color = Colors.transparent;
+  canvas.drawRect(const Rect.fromLTWH(0, 0, width, height), paint);
 
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.black12,
-        body: Center(child: GlobeShaderWidget()),
-      ),
-    );
-  }
-}
+  // Konfigurasi Teks BABE.INFO
+  const textStyle = TextStyle(
+    color: Color(0xFF111111), // Warna hitam pekat seperti di gambar
+    fontSize: 52,
+    fontWeight: FontWeight.w900,
+    letterSpacing: 2.0,
+  );
 
-class GlobeShaderWidget extends StatefulWidget {
-  const GlobeShaderWidget({super.key});
+  const text = 'BABE.INFO';
+  final textPainter = TextPainter(
+    text: const TextSpan(text: text, style: textStyle),
+    textDirection: TextDirection.ltr,
+  )..layout();
 
-  @override
-  State<GlobeShaderWidget> createState() => _GlobeShaderWidgetState();
-}
+  // Draw susunan teks berulang melingkar
+  const double rowSpacing = 80;
+  const double colSpacing = 320;
 
-class _GlobeShaderWidgetState extends State<GlobeShaderWidget>
-    with SingleTickerProviderStateMixin {
-  ui.FragmentShader? _shader;
-  ui.Image? _textureImage;
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-
-    _loadShaderAndTexture();
-  }
-
-  Future<void> _loadShaderAndTexture() async {
-    // 1. Load Fragment Shader
-    final program = await ui.FragmentProgram.fromAsset('shaders/globe.frag');
-    
-    // 2. Load Gambar Tekstur dari Assets
-    final ByteData data = await rootBundle.load('assets/images/babe_gold.png');
-    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-
-    setState(() {
-      _shader = program.fragmentShader();
-      _textureImage = frame.image;
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _shader?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_shader == null || _textureImage == null) {
-      return const CircularProgressIndicator();
+  for (double y = 20; y < height; y += rowSpacing) {
+    // Geser setiap baris agar pola selang-seling
+    double xOffset = ((y / rowSpacing).floor() % 2 == 0) ? 0 : 120;
+    for (double x = -100 + xOffset; x < width + 100; x += colSpacing) {
+      textPainter.paint(canvas, Offset(x, y));
     }
-
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return CustomPaint(
-          size: const Size(350, 350),
-          painter: GlobePainter(
-            shader: _shader!,
-            texture: _textureImage!,
-            time: _controller.value * 2 * 3.14159, // Rotasi 360 derajat
-          ),
-        );
-      },
-    );
-  }
-}
-
-class GlobePainter extends CustomPainter {
-  final ui.FragmentShader shader;
-  final ui.Image texture;
-  final double time;
-
-  GlobePainter({
-    required this.shader,
-    required this.texture,
-    required this.time,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Set Uniforms untuk Shader GLSL:
-    // Index 0: uResolution.x
-    // Index 1: uResolution.y
-    // Index 2: uTime
-    shader.setFloat(0, size.width);
-    shader.setFloat(1, size.height);
-    shader.setFloat(2, time);
-
-    // Set Sampler0: uTexture (Gambar Tekstur)
-    shader.setImageSampler(0, texture);
-
-    final paint = Paint()..shader = shader;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
   }
 
-  @override
-  bool shouldRepaint(covariant GlobePainter oldDelegate) => true;
+  final picture = recorder.endRecording();
+  return await picture.toImage(width.toInt(), height.toInt());
 }
