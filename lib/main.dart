@@ -49,7 +49,7 @@ class _GlobeShaderWidgetState extends State<GlobeShaderWidget>
     final program = await ui.FragmentProgram.fromAsset('shaders/globe.frag');
     
     // 2. Load Gambar Tekstur dari Assets
-    final ByteData data = await rootBundle.load('assets/texture.png');
+    final ByteData data = await rootBundle.load('assets/images/babe_gold.png');
     final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
     final frame = await codec.getNextFrame();
 
