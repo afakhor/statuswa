@@ -44,8 +44,8 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
   Offset _touchOffset = Offset.zero;
   Offset _lastTouchOffset = Offset.zero;
 
-  // SESUAIKAN DENGAN USERNAME & REPO GITHUB KAMU
-  final String _webAppUrl = 'https://username.github.io/statuswa/';
+  // URL GitHub Pages milikmu yang valid
+  final String _webAppUrl = 'https://afakhor.github.io/statuswa/';
 
   @override
   void initState() {
@@ -73,7 +73,7 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
     }
   }
 
-  // Fungsi untuk membagikan Link Web Interaktif ke WhatsApp
+  // Fungsi untuk membagikan Link Web Interaktif ke WhatsApp / Aplikasi Lain
   void _shareToWhatsApp() {
     Share.share(
       'Coba putar bola 3D Emas BABE.INFO ini secara langsung di HP kamu:\n$_webAppUrl',
