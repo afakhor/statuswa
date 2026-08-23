@@ -4,7 +4,7 @@
 
 uniform vec2 uResolution;
 uniform float uTime;
-uniform vec2 uTouch;       // Uniform baru: Offset rotasi sentuhan (X, Y)
+uniform vec2 uTouch;
 uniform sampler2D uTexture;
 
 out vec4 fragColor;
@@ -50,8 +50,8 @@ void main() {
     float z = sqrt(radius * radius - dist * dist);
     vec3 normal = normalize(vec3(st.x, st.y, z));
 
-    // 2. Tambahkan Sentuhan Jari ke Rotasi Bola (uTouch.x untuk Bujur, uTouch.y untuk Lintang)
-    float lon = atan(normal.z, normal.x) - uTime * 0.2 + uTouch.x;
+    // 2. Pemetaan Spherical UV + Rotasi Touch Drag
+    float lon = atan(normal.z, normal.x) - uTime * 0.3 + uTouch.x;
     float lat = asin(clamp(normal.y / radius, -1.0, 1.0)) + uTouch.y;
 
     vec2 uv = vec2(
@@ -59,7 +59,7 @@ void main() {
         clamp(0.5 + lat / PI, 0.0, 1.0)
     );
 
-    // 3. Pencahayaan Emas 3D
+    // 3. Lighting Emas 3D
     vec3 lightDir1 = normalize(vec3(-0.8, 0.8, 1.0));
     vec3 lightDir2 = normalize(vec3(0.8, -0.5, 0.5));
 
@@ -76,7 +76,7 @@ void main() {
 
     vec3 goldColor = mix(goldDark, goldBase, diff1 + diff2 * 0.3) + goldHighlight * spec * 0.9;
 
-    // 4. Retakan Rantai + Tekstur BABE.INFO
+    // 4. Texture & Cracks Blend
     float crack = crackPattern(uv);
     goldColor = mix(vec3(0.05, 0.03, 0.02), goldColor, crack);
 
