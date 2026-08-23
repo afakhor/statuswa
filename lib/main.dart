@@ -39,6 +39,10 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
   ui.Image? _textureImage;
   late AnimationController _controller;
 
+  // Variabel penampung gesture sentuhan jari (Touch/Drag)
+  Offset _touchOffset = Offset.zero;
+  Offset _lastTouchOffset = Offset.zero;
+
   @override
   void initState() {
     super.initState();
@@ -53,8 +57,8 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
   Future<void> _initShaderAndTexture() async {
     // 1. Load Fragment Shader
     final program = await ui.FragmentProgram.fromAsset('shaders/globe.frag');
-    
-    // 2. Generate Tekstur BABE.INFO secara prosedural di Dart
+
+    // 2. Generate Tekstur BABE.INFO secara prosedural
     final dynamicTexture = await generateBabeInfoTexture();
 
     if (mounted) {
@@ -77,18 +81,32 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
       return const CircularProgressIndicator(color: Colors.amber);
     }
 
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return CustomPaint(
-          size: const Size(320, 320),
-          painter: GlobePainter(
-            program: _program!,
-            texture: _textureImage!,
-            time: _controller.value * 2 * 3.14159265359,
-          ),
-        );
+    return GestureDetector(
+      onPanStart: (details) {
+        _lastTouchOffset = details.localPosition;
       },
+      onPanUpdate: (details) {
+        setState(() {
+          // Hitung jarak geseran jari pengguna untuk memutar bola
+          final delta = details.localPosition - _lastTouchOffset;
+          _touchOffset += Offset(delta.dx * 0.01, -delta.dy * 0.01);
+          _lastTouchOffset = details.localPosition;
+        });
+      },
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return CustomPaint(
+            size: const Size(320, 320),
+            painter: GlobePainter(
+              program: _program!,
+              texture: _textureImage!,
+              time: _controller.value * 2 * 3.14159265359,
+              touch: _touchOffset,
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -97,25 +115,31 @@ class GlobePainter extends CustomPainter {
   final ui.FragmentProgram program;
   final ui.Image texture;
   final double time;
+  final Offset touch;
 
   GlobePainter({
     required this.program,
     required this.texture,
     required this.time,
+    required this.touch,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final shader = program.fragmentShader();
 
-    // Uniform 0 & 1: uResolution (width, height)
+    // Uniform 0 & 1: uResolution (Width & Height)
     shader.setFloat(0, size.width);
     shader.setFloat(1, size.height);
 
-    // Uniform 2: uTime
+    // Uniform 2: uTime (Waktu animasi)
     shader.setFloat(2, time);
 
-    // Sampler2D 0: uTexture
+    // Uniform 3 & 4: uTouch (Offset X & Y sentuhan jari)
+    shader.setFloat(3, touch.dx);
+    shader.setFloat(4, touch.dy);
+
+    // Sampler2D 0: uTexture (Tekstur BABE.INFO)
     shader.setImageSampler(0, texture);
 
     final paint = Paint()..shader = shader;
@@ -124,11 +148,11 @@ class GlobePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant GlobePainter oldDelegate) {
-    return oldDelegate.time != time;
+    return oldDelegate.time != time || oldDelegate.touch != touch;
   }
 }
 
-// Helper untuk membuat tekstur teks "BABE.INFO"
+// Helper Generator Tekstur "BABE.INFO"
 Future<ui.Image> generateBabeInfoTexture() async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
