@@ -20,7 +20,9 @@ class MyApp extends StatelessWidget {
       home: const Scaffold(
         backgroundColor: Colors.black,
         body: Center(
-          child: Globe3DWidget(),
+          child: SingleChildScrollView(
+            child: Globe3DWidget(),
+          ),
         ),
       ),
     );
@@ -40,12 +42,14 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
   ui.Image? _textureImage;
   late AnimationController _controller;
 
-  // Variabel penampung gesture sentuhan jari (Touch/Drag)
+  // Controller untuk menangkap running text dari pengguna
+  final TextEditingController _textController =
+      TextEditingController(text: 'BABE.INFO');
+
   Offset _touchOffset = Offset.zero;
   Offset _lastTouchOffset = Offset.zero;
 
-  // URL GitHub Pages milikmu yang valid
-  final String _webAppUrl = 'https://afakhor.github.io/statuswa/';
+  final String _baseUrl = 'https://afakhor.github.io/statuswa/';
 
   @override
   void initState() {
@@ -59,11 +63,8 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
   }
 
   Future<void> _initShaderAndTexture() async {
-    // 1. Load Fragment Shader
     final program = await ui.FragmentProgram.fromAsset('shaders/globe.frag');
-
-    // 2. Generate Tekstur BABE.INFO secara prosedural
-    final dynamicTexture = await generateBabeInfoTexture();
+    final dynamicTexture = await generateRunningTextTexture(_textController.text);
 
     if (mounted) {
       setState(() {
@@ -73,16 +74,35 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
     }
   }
 
-  // Fungsi untuk membagikan Link Web Interaktif ke WhatsApp / Aplikasi Lain
+  // Merender ulang tekstur bola saat teks diinputkan
+  Future<void> _updateTexture(String newText) async {
+    final textToRender = newText.trim().isEmpty ? 'BABE.INFO' : newText;
+    final updatedTexture = await generateRunningTextTexture(textToRender);
+    if (mounted) {
+      setState(() {
+        _textureImage = updatedTexture;
+      });
+    }
+  }
+
+  // Membagikan link beserta teks kustom ke WhatsApp
   void _shareToWhatsApp() {
+    final inputMessage = _textController.text.trim();
+    final customText = inputMessage.isEmpty ? 'BABE.INFO' : inputMessage;
+    
+    // Encode parameter agar aman digunakan di URL
+    final encodedText = Uri.encodeComponent(customText);
+    final dynamicUrl = '$_baseUrl?text=$encodedText';
+
     Share.share(
-      'Coba putar bola 3D Emas BABE.INFO ini secara langsung di HP kamu:\n$_webAppUrl',
+      'Coba putar bola 3D Emas "$customText" ini secara langsung di HP kamu:\n$dynamicUrl',
     );
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _textController.dispose();
     super.dispose();
   }
 
@@ -92,8 +112,8 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
       return const CircularProgressIndicator(color: Colors.amber);
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       children: [
         // Area Interactive Globe 3D
         GestureDetector(
@@ -102,7 +122,6 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
           },
           onPanUpdate: (details) {
             setState(() {
-              // Hitung jarak geseran jari pengguna untuk memutar bola
               final delta = details.localPosition - _lastTouchOffset;
               _touchOffset += Offset(delta.dx * 0.01, -delta.dy * 0.01);
               _lastTouchOffset = details.localPosition;
@@ -112,7 +131,7 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
             animation: _controller,
             builder: (context, child) {
               return CustomPaint(
-                size: const Size(320, 320),
+                size: const Size(300, 300),
                 painter: GlobePainter(
                   program: _program!,
                   texture: _textureImage!,
@@ -124,13 +143,37 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
           ),
         ),
 
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
+
+        // Input Field untuk Teks Kustom
+        TextField(
+          controller: _textController,
+          style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            labelText: 'Ketik Running Text',
+            labelStyle: const TextStyle(color: Colors.amber),
+            hintText: 'Misal: BABE.INFO / PUSAT BERITA',
+            hintStyle: TextStyle(color: Colors.grey.shade600),
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.amber),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.amberAccent, width: 2),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            prefixIcon: const Icon(Icons.text_fields, color: Colors.amber),
+          ),
+          onChanged: (val) => _updateTexture(val),
+        ),
+
+        const SizedBox(height: 20),
 
         // Tombol Share ke WhatsApp
         ElevatedButton.icon(
           onPressed: _shareToWhatsApp,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF25D366), // Warna Khas WhatsApp
+            backgroundColor: const Color(0xFF25D366),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             shape: RoundedRectangleBorder(
@@ -170,18 +213,11 @@ class GlobePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final shader = program.fragmentShader();
 
-    // Uniform 0 & 1: uResolution (Width & Height)
     shader.setFloat(0, size.width);
     shader.setFloat(1, size.height);
-
-    // Uniform 2: uTime (Waktu animasi)
     shader.setFloat(2, time);
-
-    // Uniform 3 & 4: uTouch (Offset X & Y sentuhan jari)
     shader.setFloat(3, touch.dx);
     shader.setFloat(4, touch.dy);
-
-    // Sampler2D 0: uTexture (Tekstur BABE.INFO)
     shader.setImageSampler(0, texture);
 
     final paint = Paint()..shader = shader;
@@ -190,12 +226,14 @@ class GlobePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant GlobePainter oldDelegate) {
-    return oldDelegate.time != time || oldDelegate.touch != touch;
+    return oldDelegate.time != time ||
+        oldDelegate.touch != touch ||
+        oldDelegate.texture != texture;
   }
 }
 
-// Helper Generator Tekstur "BABE.INFO"
-Future<ui.Image> generateBabeInfoTexture() async {
+// Generator Tekstur Dinamis Berdasarkan Input Pengguna
+Future<ui.Image> generateRunningTextTexture(String customText) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
 
@@ -207,22 +245,22 @@ Future<ui.Image> generateBabeInfoTexture() async {
 
   const textStyle = TextStyle(
     color: Color(0xFF111111),
-    fontSize: 52,
+    fontSize: 48,
     fontWeight: FontWeight.w900,
     letterSpacing: 2.0,
   );
 
   final textPainter = TextPainter(
-    text: const TextSpan(text: 'BABE.INFO', style: textStyle),
+    text: TextSpan(text: customText.toUpperCase(), style: textStyle),
     textDirection: TextDirection.ltr,
   )..layout();
 
   const double rowSpacing = 80;
-  const double colSpacing = 320;
+  final double colSpacing = textPainter.width + 60;
 
   for (double y = 20; y < height; y += rowSpacing) {
-    double xOffset = ((y / rowSpacing).floor() % 2 == 0) ? 0 : 120;
-    for (double x = -100 + xOffset; x < width + 100; x += colSpacing) {
+    double xOffset = ((y / rowSpacing).floor() % 2 == 0) ? 0 : colSpacing / 2;
+    for (double x = -100 + xOffset; x < width + 200; x += colSpacing) {
       textPainter.paint(canvas, Offset(x, y));
     }
   }
