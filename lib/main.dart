@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,9 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
   Offset _touchOffset = Offset.zero;
   Offset _lastTouchOffset = Offset.zero;
 
+  // SESUAIKAN DENGAN USERNAME & REPO GITHUB KAMU
+  final String _webAppUrl = 'https://username.github.io/statuswa/';
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +73,13 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
     }
   }
 
+  // Fungsi untuk membagikan Link Web Interaktif ke WhatsApp
+  void _shareToWhatsApp() {
+    Share.share(
+      'Coba putar bola 3D Emas BABE.INFO ini secara langsung di HP kamu:\n$_webAppUrl',
+    );
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -81,32 +92,63 @@ class _Globe3DWidgetState extends State<Globe3DWidget>
       return const CircularProgressIndicator(color: Colors.amber);
     }
 
-    return GestureDetector(
-      onPanStart: (details) {
-        _lastTouchOffset = details.localPosition;
-      },
-      onPanUpdate: (details) {
-        setState(() {
-          // Hitung jarak geseran jari pengguna untuk memutar bola
-          final delta = details.localPosition - _lastTouchOffset;
-          _touchOffset += Offset(delta.dx * 0.01, -delta.dy * 0.01);
-          _lastTouchOffset = details.localPosition;
-        });
-      },
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            size: const Size(320, 320),
-            painter: GlobePainter(
-              program: _program!,
-              texture: _textureImage!,
-              time: _controller.value * 2 * 3.14159265359,
-              touch: _touchOffset,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Area Interactive Globe 3D
+        GestureDetector(
+          onPanStart: (details) {
+            _lastTouchOffset = details.localPosition;
+          },
+          onPanUpdate: (details) {
+            setState(() {
+              // Hitung jarak geseran jari pengguna untuk memutar bola
+              final delta = details.localPosition - _lastTouchOffset;
+              _touchOffset += Offset(delta.dx * 0.01, -delta.dy * 0.01);
+              _lastTouchOffset = details.localPosition;
+            });
+          },
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return CustomPaint(
+                size: const Size(320, 320),
+                painter: GlobePainter(
+                  program: _program!,
+                  texture: _textureImage!,
+                  time: _controller.value * 2 * 3.14159265359,
+                  touch: _touchOffset,
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 32),
+
+        // Tombol Share ke WhatsApp
+        ElevatedButton.icon(
+          onPressed: _shareToWhatsApp,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF25D366), // Warna Khas WhatsApp
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
             ),
-          );
-        },
-      ),
+            elevation: 4,
+          ),
+          icon: const Icon(Icons.share, size: 20),
+          label: const Text(
+            'Bagikan ke WhatsApp',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
