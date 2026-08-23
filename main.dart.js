@@ -49325,7 +49325,7 @@ case 3:o=b
 if(q.c!=null)q.aI(new A.W7(q,p,o))
 return A.M(null,r)}})
 return A.N($async$l1,r)},
-Oe(){A.a0p("Coba putar bola 3D Emas BABE.INFO ini secara langsung di HP kamu:\nhttps://username.github.io/statuswa/")},
+Oe(){A.a0p("Coba putar bola 3D Emas BABE.INFO ini secara langsung di HP kamu:\nhttps://afakhor.github.io/statuswa/")},
 l(){var s=this.f
 s===$&&A.b()
 s.l()
